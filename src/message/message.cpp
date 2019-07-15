@@ -80,8 +80,6 @@ Message Message::parse(const uint8_t* rawData, uint16_t rawDataLength)
 	
 	m.type = static_cast<Messages>(t);
 	
-	
-	
 	return m;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -133,7 +131,6 @@ Message Message::ScanResponse(uint32_t controllerID, uint8_t moduleID, const cha
 	writePtr += sizeof(uint8_t);
 
 	memcpy(writePtr,&observeDataCount,sizeof(uint8_t));
-	writePtr += sizeof(uint8_t);
 	
 	return m;
 }
@@ -209,7 +206,6 @@ Message Message::BroadcastSlotData(uint32_t controllerID, uint8_t moduleID, AnyD
 	writePtr += sizeof(uint16_t);
 
 	memcpy(writePtr,dt->getData(),dataLen);
-	writePtr += dataLen;
 	
 	
 	return m;
@@ -244,7 +240,6 @@ Message Message::ObserveSlotData(uint32_t controllerID, uint8_t moduleID, uint16
 	writePtr += sizeof(uint16_t);	
 
 	memcpy(writePtr,&frequency,sizeof(uint32_t));
-	writePtr += sizeof(uint32_t);	
 	
 	return m;
 }
@@ -295,13 +290,146 @@ Message Message::AnyDataResponse(uint32_t controllerID, uint8_t moduleID, AnyDat
 	memcpy(writePtr,&dataLen,sizeof(uint16_t));
 	writePtr += sizeof(uint16_t);
 
-	memcpy(writePtr,dt->getData(),dataLen);
-	writePtr += dataLen;
-	
+	memcpy(writePtr,dt->getData(),dataLen);	
 	
 	return m;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Message Message::EventResponse(uint32_t controllerID, uint8_t moduleID, uint8_t hasEvent, Event* e)
+{
+/*
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	сообщение "публикация события"
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+		отсылается модулем в ответ на сообщение "запрос события", структура:
+		
+			ID контроллера
+			ID модуля
+			Тип сообщения - "публикация события"
+			нагрузка:
+				- Флаг, есть событие или нет (1 байт)
+				- Тип события (2 байта) - только если есть событие
+				- Длина данных события (2 байта) - только если есть событие
+				- Данные события  - только если есть событие
+*/	
+
+	Message m(controllerID,moduleID,Messages::EventResponse);
+
+
+	// конструируем сырое сообщение	
+	
+	uint16_t dataLen = MESSAGE_HEADER_SIZE + 1;
+	if(hasEvent)
+	{
+		dataLen += 4 + e->getDataLength();
+	}
+	
+	m.payloadLength = dataLen;
+	m.payload = new uint8_t[m.payloadLength];
+	uint8_t* writePtr = Message::writeHeader(m.payload, controllerID, moduleID, static_cast<uint16_t>(m.type));
+	
+	// копируем нагрузку
+	memcpy(writePtr,&hasEvent,sizeof(uint8_t));
+	writePtr += sizeof(uint8_t);
+	
+	if(hasEvent)
+	{
+		// есть событие, надо скопировать его данные
+		uint16_t helper16 = static_cast<uint16_t>(e->getType());
+		memcpy(writePtr,&helper16,sizeof(uint16_t));
+		writePtr += sizeof(uint16_t);
+		
+		helper16 = e->getDataLength();
+		memcpy(writePtr,&helper16,sizeof(uint16_t));
+		writePtr += sizeof(uint16_t);
+		
+		memcpy(writePtr,e->getData(),helper16);
+	}
+	
+	return m;
+}
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Event
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Event::Event(Events _type)
+{
+	type = _type;
+	data = NULL;
+	dataLength = 0;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Event::Event(const Event& rhs)
+{
+	type = rhs.type;
+	data = new uint8_t[rhs.dataLength];
+	memcpy(data,rhs.data,rhs.dataLength);
+	dataLength = rhs.dataLength;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Event& Event::operator=(const Event& rhs)
+{
+	delete [] data;
+	
+	type = rhs.type;
+	data = new uint8_t[rhs.dataLength];
+	memcpy(data,rhs.data,rhs.dataLength);
+	dataLength = rhs.dataLength;
+	
+	return *this;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Event::~Event()
+{
+	delete [] data;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Event* Event::SlotDataChanged(uint8_t moduleID, AnyData* data)
+{
+/*
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	событие "Изменились данные исходящего слота"
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+		отсылается модулем как нагрузка сообщения EventResponse (в ответ на сообщение контроллера EventRequest) в том случае, когда данные публикуемого в системе слота - изменились на модуле. Структура:
+
+			нагрузка:
+				- ID модуля, инициировавшего событие
+				- ID слота (2 байта, уникальный в рамках системы)
+				
+*/	
+		
+	Event* e = new Event(Events::SlotDataChanged);
+	
+	e->dataLength = 3;
+	e->data = new uint8_t[e->dataLength];
+	
+	uint8_t* ptr = e->data;
+	
+	*ptr++ = moduleID;
+		
+	uint16_t t = data->getID();
+	
+	uint8_t*  readPtr = (uint8_t*)&t;
+	for(size_t i=0;i<sizeof(uint16_t);i++)
+	{
+		*ptr++ = *readPtr++;
+	}
+	
+	return e;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool Event::operator==(const Event& rhs)
+{
+	if(&rhs == this)
+		return true;
+	
+	if(type != rhs.type)
+		return false;
+
+	if(dataLength != rhs.dataLength || memcmp(data,rhs.data,dataLength))
+		return false;
+	
+	return true;
+}
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------

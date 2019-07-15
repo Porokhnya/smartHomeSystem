@@ -25,6 +25,7 @@ typedef struct
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 typedef Vector<AnyData*> AnyDataList;
 typedef Vector<AnyDataTimer> AnyDataTimerList;
+typedef Vector<Event*> EventsList;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 class SmartModule
 {
@@ -86,7 +87,11 @@ class SmartModule
 		AnyDataList broadcastList;
 		AnyDataTimerList observeList;
 		
+		
+		EventsList events;
+		bool eventExists(Event* e);
 		void addEvent(Events type, AnyData* data);
+		Event* getEvent();
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern SmartModule* _Module; // рабочий экземпляр модуля
