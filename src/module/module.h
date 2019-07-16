@@ -37,7 +37,9 @@ class SmartModule
 		
 		// принудительно привязывает модуль к контроллеру
 		void linkToController(uint32_t controllerID);
-		
+
+		// возвращает true, если модуль привязан к какому-либо контроллеру
+		bool registered();
 				
 		// начинаем работу
 		void begin();
@@ -55,6 +57,9 @@ class SmartModule
 		uint32_t getControllerID() { return controllerID; }
 		const char* getModuleName() { return moduleName; }
 		
+		// начинаем регистрацию
+		void startRegistration(uint32_t timeout);
+		
 	protected:
 	
 		friend class AnyData;
@@ -65,7 +70,6 @@ class SmartModule
 		
 	private:
 	
-		bool registered();
 		void processIncomingMessage();
 		
 		bool toMe(const Message& m);
@@ -86,6 +90,11 @@ class SmartModule
 		
 		AnyDataList broadcastList;
 		AnyDataTimerList observeList;
+		
+		// registration related
+		bool inRegMode;
+		uint32_t regTimeout, regStartedAt;
+		uint32_t oldControllerID;
 		
 		
 		EventsList events;

@@ -54,6 +54,23 @@ void SmartModule::begin()
 	
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void SmartModule::startRegistration(uint32_t timeout)
+{
+	if(inRegMode) // уже в режиме регистрации
+	{
+		DBGLN(F("Already in registration mode!"));
+		return;
+	}
+	// переходим в режим регистрации
+	DBGLN(F("Switch to registration mode!"));
+	
+	oldControllerID = controllerID;
+	controllerID = 0xFFFFFFFF;
+	inRegMode = true;
+	regTimeout = timeout;
+	regStartedAt = uptime();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void SmartModule::update()
 {
 	if(!canWork)
@@ -66,6 +83,16 @@ void SmartModule::update()
 		return;
 	
 	inUpdate = true;
+	
+	// проверяем - если мы в режиме регистрации и она слишком долго длится - выходим из неё
+	if(inRegMode && uptime() - regStartedAt >= regTimeout)
+	{
+		inRegMode = false;
+		controllerID = oldControllerID;
+		// посылаем событие, что регистрация прошла неудачно
+		registration(false);
+		
+	}
 	
 	// для начала - сбрасываем флаг получения новых данных с контроллера у всех наблюдаемых слотов
 	for(size_t i=0;i<observeList.size();i++)
@@ -131,10 +158,10 @@ void SmartModule::processIncomingMessage()
 	}
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void SmartModule::processMessage(const Message& m)
+void SmartModule::processMessage(const Message& incoming)
 {
 	//TODO: обрабатываем входящее сообщение
-	switch(m.type)
+	switch(incoming.type)
 	{
 		case Messages::Unknown:
 		{
@@ -145,6 +172,56 @@ void SmartModule::processMessage(const Message& m)
 		case Messages::Event:
 		{
 			// сообщение типа "событие" - здесь не обрабатывается
+		}
+		break;
+		
+		case Messages::RegistrationRequest:		
+		{
+/*
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	сообщение "запрос регистрации" (RegistrationRequest)
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+		отсылается контроллером в эфир для поиска модуля, находящегося в режиме регистрации, структура:
+		
+			ID контроллера
+			ID модуля = 0xFF
+			Тип сообщения - "запрос регистрации" (RegistrationRequest)
+			
+		если в эфире есть модуль, находящийся в режиме регистрации, он должен сохранить у себя ID контроллера, и ответить сообщением "регистрация завершена" (RegistrationResult).
+*/			
+			if(inRegMode)
+			{
+				// мы в режиме регистрации, поэтому сохраняем у себя ID контроллера
+				DBG(F("Register in controller #"));
+				DBGLN(incoming.controllerID);
+				
+				controllerID = incoming.controllerID;
+				inRegMode = false;
+				
+				// сохраняем ID контроллера в хранилище
+				StorageReader::write(storage,0,controllerID);
+				
+				// отсылаем сообщение RegistrationResult
+				DBGLN(F("Send RegistrationResult message"));
+				
+				Message m = Message::RegistrationResult(controllerID, moduleID);
+				
+				// публикуем в транспорт ответ сразу же, потому что там его ждут незамедлительно
+				transport->write(m.getPayload(),m.getPayloadLength());						
+				
+				// посылаем событие, что мы успешно зарегистрировались
+				registration(true);
+				
+			}
+		
+		}
+		break;
+		
+		case Messages::RegistrationResult:
+		{
+			// сообщение типа "регистрация завершена" мы, как модуль, игнорируем
+
 		}
 		break;
 		
@@ -171,7 +248,7 @@ void SmartModule::processMessage(const Message& m)
 			
 			DBGLN(F("Messages::Scan"));
 		
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				// сообщение адресовано нам, на него надо ответить сообщением "я на связи"
 				DBGLN(F("Send ScanResponse message"));
@@ -222,7 +299,7 @@ void SmartModule::processMessage(const Message& m)
 		{
 			DBGLN(F("Messages::Ping"));
 			
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				DBGLN(F("Send back Pong message."));
 	
@@ -250,7 +327,7 @@ void SmartModule::processMessage(const Message& m)
 		{
 			DBGLN(F("Messages::Pong"));
 			//TODO: сообщение "понг" мы игнорируем, хотя здесь можно и узнавать, какие модули онлайн
-			if(registered() && controllerID == m.controllerID)
+			if(registered() && controllerID == incoming.controllerID)
 			{
 				// зарегистрированы, и сообщение послал наш контроллер, можно выставлять флаг, что данный модуль онлайн				
 			}
@@ -277,10 +354,10 @@ void SmartModule::processMessage(const Message& m)
 		{
 			DBGLN(F("Messages::BroadcastSlotRegister"));
 			
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				// запрос на регистрацию исходящего слота, в нагрузке - номер исходящего слота в нашем списке исходящих слотов
-				uint8_t slotNumber = m.get<uint8_t>(0);
+				uint8_t slotNumber = incoming.get<uint8_t>(0);
 					
 				DBG(F("Requested broadcast slot data #"));
 				DBGLN(slotNumber);
@@ -349,10 +426,10 @@ void SmartModule::processMessage(const Message& m)
 		{
 			DBGLN(F("Messages::ObserveSlotRegister"));
 			
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				// запрос на регистрацию входящего слота, в нагрузке - номер входящего слота в нашем списке входящих слотов
-				uint8_t slotNumber = m.get<uint8_t>(0);
+				uint8_t slotNumber = incoming.get<uint8_t>(0);
 					
 				DBG(F("Requested observe slot data #"));
 				DBGLN(slotNumber);
@@ -401,10 +478,10 @@ void SmartModule::processMessage(const Message& m)
 			DBGLN(F("Messages::AnyDataBroadcast"));
 			
 			// пришли данные входящего слота, который мы зарегистрировали на контроллере
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				
-				updateObserveSlot(m);
+				updateObserveSlot(incoming);
 				
 				// ничего не отвечаем, т.к. без надобности
 			}
@@ -430,10 +507,10 @@ void SmartModule::processMessage(const Message& m)
 				
 			DBGLN(F("Messages::AnyDataRequest"));
 			
-			if( registered() && toMe(m) )
+			if( registered() && toMe(incoming) )
 			{
 				// наш модуль, ищем слот
-				uint16_t slotID = m.get<uint16_t>(0);
+				uint16_t slotID = incoming.get<uint16_t>(0);
 				
 				for(size_t i=0;i<broadcastList.size();i++)
 				{
@@ -502,10 +579,10 @@ void SmartModule::processMessage(const Message& m)
 			
 			// В принципе, если мы зарегистрированы - то можно смотреть этот слот во входящих у нас,
 			// главное - чтобы модуль-отправитель - был не наш, и всё.
-			if(registered() && controllerID == m.controllerID && m.moduleID != moduleID)
+			if(registered() && controllerID == incoming.controllerID && incoming.moduleID != moduleID)
 			{
 				// мы зарегистрированы в системе, и отправили это сообщение не мы - значит, можно искать его в наблюдаемых входящих.
-				updateObserveSlot(m);
+				updateObserveSlot(incoming);
 				
 			}
 		}
@@ -527,7 +604,7 @@ void SmartModule::processMessage(const Message& m)
 		{
 			DBGLN(F("Messages::EventRequest"));
 			
-				if( registered() && toMe(m) )
+				if( registered() && toMe(incoming) )
 				{
 					//тут проверяем, есть ли у нас события, и отвечаем сообщением EventResponse
 					Event* e = getEvent();

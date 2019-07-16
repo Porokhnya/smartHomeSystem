@@ -462,6 +462,10 @@
 		
 */
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+extern "C" {
+  void registration(bool result);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #define MESSAGE_HEADER_SIZE (4+1+2) // размер заголовка любого сообщения (ID контроллера + ID модуля + тип сообщения)
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 enum class Messages : uint16_t // сообщения
@@ -559,6 +563,7 @@ class Message
 		static Message ObserveSlotData(uint32_t controllerID, uint8_t moduleID, uint16_t slotID, uint32_t frequency);
 		static Message AnyDataResponse(uint32_t controllerID, uint8_t moduleID, AnyData* data);
 		static Message EventResponse(uint32_t controllerID, uint8_t moduleID, uint8_t hasEvent, Event* e);
+		static Message RegistrationResult(uint32_t controllerID, uint8_t moduleID);
 		
 		// конструкторы
 		Message();
