@@ -44,11 +44,10 @@ uint16_t AnyData::getDataLength()
 {
 	switch(type)
 	{
-		case DataType::DiscreteRegister:
-		case DataType::BatteryPower:
+		case DataType::Byte:
 			return 1;
 		
-		case DataType::ADCValue:
+		case DataType::Word:
 			return 2;
 			
 		case DataType::Temperature:
@@ -56,6 +55,7 @@ uint16_t AnyData::getDataLength()
 			return 3;
 			
 		case DataType::Luminosity:
+		case DataType::DWord:
 			return 4;
 			
 		case DataType::Humidity:
@@ -65,9 +65,65 @@ uint16_t AnyData::getDataLength()
 	return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+uint32_t AnyData::asDWord()
+{
+	if(type != DataType::DWord)
+		return 0xFFFF;
+	
+	uint32_t result;
+	
+	uint8_t* w = (uint8_t*)&result;
+	
+	*w++ = data[0];
+	*w++ = data[1];
+	*w++ = data[2];
+	*w = data[3];
+	
+	return result;	
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void AnyData::set(uint32_t w)
+{
+	if(type != DataType::DWord)
+		return;
+	
+	uint8_t* p = (uint8_t*)&w;
+	
+	data[0] = *p++;
+	data[1] = *p++;
+	data[2] = *p++;
+	data[3] = *p;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+uint16_t AnyData::asWord()
+{
+	if(type != DataType::Word)
+		return 0xFFFF;
+	
+	uint16_t result;
+	
+	uint8_t* w = (uint8_t*)&result;
+	
+	*w++ = data[0];
+	*w = data[1];
+	
+	return result;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void AnyData::set(uint16_t w)
+{
+	if(type != DataType::Word)
+		return;
+	
+	uint8_t* p = (uint8_t*)&w;
+	
+	data[0] = *p++;
+	data[1] = *p;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 uint8_t AnyData::asByte()
 {
-	if(!(type == DataType::DiscreteRegister || type == DataType::BatteryPower) )
+	if(!(type == DataType::Byte) )
 		return 0xFF;
 	
 	return data[0];
@@ -75,7 +131,7 @@ uint8_t AnyData::asByte()
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void AnyData::set(uint8_t b)
 {
-	if(!(type == DataType::DiscreteRegister || type == DataType::BatteryPower) )
+	if(!(type == DataType::Byte) )
 		return;
 	
 	if(data[0] == b) // ничего не изменилось

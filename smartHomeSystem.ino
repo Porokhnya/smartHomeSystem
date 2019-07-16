@@ -40,7 +40,7 @@ Storage storage;
   AnyData myTemperature(DataType::Temperature,1); // тип данных (см. src/data/anydata.h, enum DataType), уникальный ID в системе (0-65535)
   
   // значение, которое мы будем слушать из системы
-  AnyData remoteFlag(DataType::DiscreteRegister,2); // значение дискретного регистра (0 или 1), уникальный ID в системе (0-65535)
+  AnyData remoteFlag(DataType::Byte,2); // байтовое значение, уникальный ID в системе (0-65535)
   
 #else
   // ПЕРЕМЕННЫЕ ДЛЯ КОНТРОЛЛЕРА
