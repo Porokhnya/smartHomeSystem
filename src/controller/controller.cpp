@@ -120,11 +120,13 @@ void SmartController::getCommand(const String& command, Stream* answerTo)
 		if(!strcmp_P(commandName, ID_COMMAND)) // GET=ID, returns OK=ID|id|name
 		{
 			okAnswer(answerTo, commandName) << controllerID << CORE_COMMAND_PARAM_DELIMITER << name << ENDLINE;
+			handled = true;
 		}
 		else
 			if(!strcmp_P(commandName, UPTIME_COMMAND)) // GET=UPTIME, returns OK=UPTIME|uptime
 			{
 				okAnswer(answerTo, commandName) << uint32_t(uptime()/1000ul) << ENDLINE;
+				handled = true;
 			}
 			
 		//TODO: ТУТ ОСТАЛЬНЫЕ КОМАНДЫ !!
