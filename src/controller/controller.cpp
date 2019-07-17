@@ -27,12 +27,16 @@ void SmartController::begin()
 	{
 		transports[i]->begin();
 	}
+	
+	//TODO: запуск остального !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::update()
 {
 	handleIncomingCommands();
 	updateTransports();
+	
+	//TODO: основная логика работы контроллера !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::updateTransports()
@@ -47,11 +51,12 @@ void SmartController::updateTransports()
 void SmartController::startRegistration(uint32_t timeout)
 {
 	DBGLN(F("[C] Start registration!"));
+	//TODO: запуск процесса поиска модуля в режиме регистрации !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::addTransport(Transport& t)
 {
-		transports.push_back(&t);
+	transports.push_back(&t);
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::addStreamListener(StreamListener& sl)
@@ -85,10 +90,11 @@ void SmartController::processCommand(const String& command, Stream* answerTo)
 	{
 			setCommand(command,answerTo);
 	}
-	else // GET=...
-	{
-		getCommand(command,answerTo);
-	}
+	else 
+		if(command.startsWith(CORE_COMMAND_GET)) // GET=...
+		{
+			getCommand(command,answerTo);
+		}
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::setCommand(const String& command, Stream* answerTo)
@@ -129,7 +135,7 @@ void SmartController::getCommand(const String& command, Stream* answerTo)
 				handled = true;
 			}
 			
-		//TODO: ТУТ ОСТАЛЬНЫЕ КОМАНДЫ !!
+		//TODO: ТУТ ОСТАЛЬНЫЕ КОМАНДЫ ЧТЕНИЯ СВОЙСТВ !!
 	 }
 	 
 	 if(!handled)
