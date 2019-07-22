@@ -68,7 +68,7 @@ trigger regTrigger; // триггер, который мы будем испол
 
   // ПЕРЕМЕННЫЕ ДЛЯ КОНТРОЛЛЕРА
   
-  SmartController controller(1234ul,"Теплица",storage); // идентификатор контроллера, имя контроллера, хранилище
+  SmartController controller(1234ul,"Теплица",storage); // идентификатор контроллера по умолчанию, имя контроллера, хранилище
   StreamListener controllerCommands(Serial); // обработчик команд из Serial
   
 #endif

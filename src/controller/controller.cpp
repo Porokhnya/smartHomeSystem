@@ -15,12 +15,22 @@ SmartController::SmartController(uint32_t _id, const char* _name, _Storage& _sto
 //--------------------------------------------------------------------------------------------------------------------------------------
 SmartController::~SmartController()
 {
-	
+	//TODO: очистка памяти !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::begin()
 {
 	DBGLN(F("[C] begin."));
+	
+	// вычитываем сохранённый ID контроллера
+	uint32_t savedID;
+	if(StorageReader::read(storage,0,savedID))
+	{
+		DBG(F("[C] Saved ID: "));
+		DBGLN(savedID);
+		controllerID = savedID;
+	}
+
 	
 	// стартуем все транспорты
 	for(size_t i=0;i<transports.size();i++)

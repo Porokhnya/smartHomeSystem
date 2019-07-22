@@ -44,6 +44,7 @@ class RS485 : public Transport
 		bool available();
 		void wipe();
 		void update();
+		uint32_t getReadingTimeout() { return receiveTimeout; }
 		
 		
 private:
