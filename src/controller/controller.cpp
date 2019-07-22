@@ -152,6 +152,7 @@ void SmartController::updateScan()
 	if(scanDone)
 	{
 		DBGLN(F("[C] Scan done, ask for slots!"));
+		scanning(false); // вызываем событие "сканирование завершено"
 		askSlots();
 	}
 }
@@ -160,10 +161,13 @@ void SmartController::scan()
 {
 	DBGLN(F("[C] Start scan..."));
 	
+	scanning(true); // вызываем событие "сканирование запущено"
+	
 	scanDone = !transports.size();
 	if(scanDone)
 	{
 		DBGLN(F("[C] Scan done (transports == 0), asks for slots!"));
+		scanning(false); // вызываем событие "сканирование завершено"
 		askSlots();
 		return;
 	}
