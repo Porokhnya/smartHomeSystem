@@ -184,6 +184,14 @@ void SmartController::scan()
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::askSlots()
 {
+	if(!modulesList.size())
+	{
+		// нечего опрашивать!!!
+		DBGLN(F("[C] No online modules, switch to normal work mode!"));
+		machineState = SmartControllerState::Normal;
+		return;
+	}
+	
 	DBGLN(F("[C] Ask for slots!"));
 	
 	machineState = SmartControllerState::AskSlots; // переключаемся на ветку опроса слотов у всех онлайн-модулей
