@@ -557,6 +557,7 @@ class Message
 		}
 				
 		// методы создания пакетов для различных типов сообщений
+		static Message Scan(uint32_t controllerID, uint8_t moduleID);
 		static Message ScanResponse(uint32_t controllerID, uint8_t moduleID, const char* moduleName, uint8_t broadcastDataCount,uint8_t observeDataCount);		
 		static Message Pong(uint32_t controllerID, uint8_t moduleID);
 		static Message BroadcastSlotData(uint32_t controllerID, uint8_t moduleID, AnyData* data);

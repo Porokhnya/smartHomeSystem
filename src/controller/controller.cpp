@@ -15,6 +15,10 @@ SmartController::SmartController(uint32_t _id, const char* _name, _Storage& _sto
 //--------------------------------------------------------------------------------------------------------------------------------------
 SmartController::~SmartController()
 {
+	for(size_t i=0;i<modulesList.size();i++)
+	{
+		delete modulesList[i];
+	}
 	//TODO: очистка памяти !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
@@ -39,6 +43,156 @@ void SmartController::begin()
 	}
 	
 	//TODO: запуск остального !!!
+	
+	// начинаем сканировать эфир
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+void SmartController::updateScan()
+{
+	//TODO: тут обновление сканирования!
+	switch(scanState)
+	{
+		case ScanState::AskModule:
+		{
+			DBG(F("[C] Scan module #"));
+			DBG(currentModuleIndex);
+			DBG(F(" at transport #"));
+			DBGLN(currentTransportIndex);
+			
+			// конструируем собщение
+			Message m = Message::Scan(controllerID, currentModuleIndex);
+
+			timeout = transports[currentTransportIndex]->getReadingTimeout();
+			timer = uptime();
+			scanState = ScanState::WaitForModuleAnswer;
+			
+			// публикуем в транспорт запрос к модулю
+			transports[currentTransportIndex]->write(m.getPayload(),m.getPayloadLength());								
+			
+		}
+		break; // ScanState::AskModule
+		
+		case ScanState::WaitForModuleAnswer:
+		{
+			// посылали запрос модулю, надо проверить, есть ли ответ и нет ли таймаута?
+			if(uptime() - timer >= timeout)
+			{
+				// модуль не отвечает по таймауту
+				DBGLN(F("[C] Module not answering!"));
+				
+				// переходим на следующий модуль
+				currentModuleIndex++;
+				scanState = ScanState::AskModule;
+				
+				if(currentModuleIndex == 0xFF)
+				{
+					// добрались до широковещательного адреса, переходим на следующий транспорт
+					DBGLN(F("[C] Switch to next transport!"));
+					currentTransportIndex++;
+					currentModuleIndex = 0;
+				}
+				
+				if(currentTransportIndex >= transports.size())
+				{
+					// сканирование закончено!
+					scanDone = true;
+				}
+			}
+			else
+			{
+				// проверяем, есть ли в транспорте входящий пакет?
+				if(transports[currentTransportIndex]->available())
+				{
+					// есть входящий пакет
+					uint16_t payloadLength;
+					uint8_t* payload = transports[currentTransportIndex]->read(payloadLength);
+					
+					// тут парсим сообщение и понимаем, что к чему
+					Message incoming = Message::parse(payload,payloadLength);
+					
+					// говорим транспорту, что мы больше не нуждаемся в пакете
+					transports[currentTransportIndex]->wipe();
+					
+					// парсим входящий пакет
+					if(incoming.type == Messages::ScanResponse && incoming.controllerID == controllerID && incoming.moduleID == currentModuleIndex)
+					{
+						DBG(F("[C] Catch online module with index="));
+						DBGLN(currentModuleIndex);
+						
+						//тут помещаем модуль в список онлайн модулей
+						ControllerModuleInfo* minf = new ControllerModuleInfo(currentModuleIndex,transports[currentTransportIndex]);
+						modulesList.push_back(minf);
+					}
+					
+					// переходим на следующий модуль
+					currentModuleIndex++;
+					scanState = ScanState::AskModule;
+				
+					if(currentModuleIndex == 0xFF)
+					{
+						// добрались до широковещательного адреса, переходим на следующий транспорт
+						DBGLN(F("[C] Switch to next transport!"));
+						currentTransportIndex++;
+						currentModuleIndex = 0;
+					}
+					
+					if(currentTransportIndex >= transports.size())
+					{
+						// сканирование закончено!
+						scanDone = true;
+					}
+				} // available
+			} // else
+		}
+		break; // ScanState::WaitForModuleAnswer
+		
+	} // switch
+	
+	if(scanDone)
+	{
+		DBGLN(F("[C] Scan done, ask for slots!"));
+		askSlots();
+	}
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+void SmartController::scan()
+{
+	DBGLN(F("[C] Start scan..."));
+	
+	scanDone = !transports.size();
+	if(scanDone)
+	{
+		DBGLN(F("[C] Scan done (transports == 0), asks for slots!"));
+		askSlots();
+		return;
+	}
+	
+	// чистим список модулей онлайн
+	for(size_t i=0;i<modulesList.size();i++)
+	{
+		delete modulesList[i];
+	}	
+	modulesList.empty();
+
+	machineState = SmartControllerState::Scan; // переключаемся на ветку сканирования модулей
+	currentTransportIndex = 0;
+	currentModuleIndex = 0;
+	scanState = ScanState::AskModule;
+	
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+void SmartController::askSlots()
+{
+	DBGLN(F("[C] Ask for slots!"));
+	
+	machineState = SmartControllerState::AskSlots; // переключаемся на ветку опроса слотов у всех онлайн-модулей
+	
+	//TODO: тут инициализация перед началом сканирования слотов!
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+void SmartController::updateAskSlots()
+{
+	//TODO: тут обновление сканирования слотов!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::update()
@@ -46,7 +200,29 @@ void SmartController::update()
 	handleIncomingCommands();
 	updateTransports();
 	
-	//TODO: основная логика работы контроллера !!!
+	switch(machineState)
+	{
+		case SmartControllerState::Scan:
+		{
+			// сканируем эфир, обновляем эту ветку
+			updateScan();
+		}
+		break; // SmartControllerState::Scan
+		
+		case SmartControllerState::AskSlots:
+		{
+			updateAskSlots();
+		}
+		break; // SmartControllerState::AskSlots
+		
+		case SmartControllerState::Normal:
+		{
+			//TODO: Нормальный режим работы !!!
+		}
+		break; // SmartControllerState::Normal
+		
+	} // switch
+	
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::updateTransports()
