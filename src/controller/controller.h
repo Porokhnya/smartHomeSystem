@@ -49,7 +49,7 @@ class SmartController
 		SmartController(uint32_t id, const char* name, _Storage& storage);
 		~SmartController();
 		
-		void begin();
+		void begin(uint8_t maxModulesCount);
 		void update();
 		
 		void startRegistration(uint32_t timeout);
@@ -81,6 +81,7 @@ class SmartController
 		_Storage* storage;
 		
 		SmartModulesList modulesList; // список модулей онлайн
+		uint8_t maxModulesCount; // максимальное кол-во модулей в системе
 		
 		TransportsList transports;
 		void updateTransports();
