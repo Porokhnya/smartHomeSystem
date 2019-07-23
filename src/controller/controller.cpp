@@ -11,6 +11,7 @@ SmartController::SmartController(uint32_t _id, const char* _name, _Storage& _sto
 	controllerID = _id;
 	name = _name;
 	storage = &_storage;
+	maxModulesCount = 0xFF;
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 SmartController::~SmartController()
@@ -22,9 +23,11 @@ SmartController::~SmartController()
 	//TODO: очистка памяти !!!
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
-void SmartController::begin()
+void SmartController::begin(uint8_t maxModules)
 {
 	DBGLN(F("[C] begin."));
+	
+	maxModulesCount = maxModules;
 	
 	// вычитываем сохранённый ID контроллера
 	uint32_t savedID;
@@ -79,13 +82,15 @@ void SmartController::updateScan()
 			if(uptime() - timer >= timeout)
 			{
 				// модуль не отвечает по таймауту
-				DBGLN(F("[C] Module not answering!"));
+				DBG(F("[C] Module #"));
+				DBG(currentModuleIndex);
+				DBGLN(F(" not answering!"));
 				
 				// переходим на следующий модуль
 				currentModuleIndex++;
 				scanState = ScanState::AskModule;
 				
-				if(currentModuleIndex == 0xFF)
+				if(currentModuleIndex == maxModulesCount)
 				{
 					// добрались до широковещательного адреса, переходим на следующий транспорт
 					DBGLN(F("[C] Switch to next transport!"));
@@ -117,7 +122,7 @@ void SmartController::updateScan()
 					// парсим входящий пакет
 					if(incoming.type == Messages::ScanResponse && incoming.controllerID == controllerID && incoming.moduleID == currentModuleIndex)
 					{
-						DBG(F("[C] Catch online module with index="));
+						DBG(F("[C] ONLINE MODULE FOUND: #"));
 						DBGLN(currentModuleIndex);
 						
 						//тут помещаем модуль в список онлайн модулей
@@ -129,7 +134,7 @@ void SmartController::updateScan()
 					currentModuleIndex++;
 					scanState = ScanState::AskModule;
 				
-					if(currentModuleIndex == 0xFF)
+					if(currentModuleIndex == maxModulesCount)
 					{
 						// добрались до широковещательного адреса, переходим на следующий транспорт
 						DBGLN(F("[C] Switch to next transport!"));
@@ -151,7 +156,11 @@ void SmartController::updateScan()
 	
 	if(scanDone)
 	{
-		DBGLN(F("[C] Scan done, ask for slots!"));
+		DBG(F("[C] Scan done, scanned: "));
+		DBG(maxModulesCount);
+		DBG(F(" modules, found: "));
+		DBG(modulesList.size());
+		DBGLN(F(" online module(s), ask for slots!"));
 		scanning(false); // вызываем событие "сканирование завершено"
 		askSlots();
 	}
