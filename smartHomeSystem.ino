@@ -87,6 +87,22 @@ void scanning(bool begin) // событие "сканирование модул
   {
     // закончили сканирование модулей онлайн
     DBGLN(F("Search for online modules - DONE!"));
+
+    // для теста - напечатаем имя каждого модуля и кол-во публикуемых и слушающих слотов у модуля.
+    uint8_t cnt = controller.getModulesCount();
+    for(uint8_t i=0;i<cnt;i++)
+    {
+      ControllerModuleInfo* module = controller.getModule(i);
+      DBG(F("Module #"));
+      DBG(i);
+      DBG(F(": name="));
+      DBG(module->getName());
+      DBG(F(", broadcast slots="));
+      DBG(module->getBroadcastSlotsCount());
+      DBG(F(", observe slots="));
+      DBGLN(module->getObserveSlotsCount());
+      
+    }
   }
 }
 #endif
