@@ -29,16 +29,37 @@ enum class ScanState
 };
 //--------------------------------------------------------------------------------------------------------------------------------------
 // информация о модуле в системе
-struct ControllerModuleInfo
+class ControllerModuleInfo
 {
-		ControllerModuleInfo(uint8_t mid, Transport* t)
-		{
-			moduleID = mid;
-			transport = t;
-		}
+	public:
+		ControllerModuleInfo(uint8_t mid, Transport* t);
+		~ControllerModuleInfo();
+		
+		uint8_t getID() { return moduleID; }
+		Transport* getTransport() { return transport; }
+		
+		void setName(const char* nm, uint8_t len);
+		const char* getName() { return moduleName; }
+		
+		void setObserveSlotsCount(uint8_t cnt) { observeSlotsCount = cnt; }
+		uint8_t getObserveSlotsCount() { return observeSlotsCount; }
+		
+		void setBroadcastSlotsCount(uint8_t cnt) { broadcastSlotsCount = cnt; }
+		uint8_t getBroadcastSlotsCount() { return broadcastSlotsCount; }
+		
+	private:
+	
 		uint8_t moduleID; // ID модуля
 		Transport* transport; // транспорт для модуля
-	//TODO: тут будет другая информация, типа слотов для модуля
+		char* moduleName;
+		uint8_t observeSlotsCount, broadcastSlotsCount;
+	
+		//TODO: тут будет другая информация, типа слотов для модуля
+	
+	private:
+	
+		ControllerModuleInfo(const ControllerModuleInfo& rhs);
+		ControllerModuleInfo& operator=(const ControllerModuleInfo& rhs);
 }; 
 //--------------------------------------------------------------------------------------------------------------------------------------
 typedef Vector<ControllerModuleInfo*> SmartModulesList;
@@ -59,6 +80,9 @@ class SmartController
 		
 		uint32_t getID() { return controllerID; }
 		const char* getName() { return name; }
+		
+		uint8_t getModulesCount() { return modulesList.size(); }
+		ControllerModuleInfo* getModule(uint8_t idx) { return modulesList[idx]; }
 		
 	private:
 	

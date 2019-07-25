@@ -556,6 +556,11 @@ class Message
 			
 			return result;
 		}
+		
+		uint8_t* get(uint16_t payloadAddress) const
+		{
+			return (payload + payloadAddress + MESSAGE_HEADER_SIZE);
+		}
 				
 		// методы создания пакетов для различных типов сообщений
 		static Message Scan(uint32_t controllerID, uint8_t moduleID);

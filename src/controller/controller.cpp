@@ -6,6 +6,32 @@
 const char ID_COMMAND[] PROGMEM = "ID"; // получить ID контроллера (GET=ID)
 const char UPTIME_COMMAND[] PROGMEM = "UPTIME"; // получить время работы контроллера, секунд (GET=UPTIME)
 //--------------------------------------------------------------------------------------------------------------------------------------
+// ControllerModuleInfo
+//--------------------------------------------------------------------------------------------------------------------------------------
+ControllerModuleInfo::ControllerModuleInfo(uint8_t mid, Transport* t)
+{
+	moduleID = mid;
+	transport = t;
+	moduleName = NULL;
+	observeSlotsCount = 0;
+	broadcastSlotsCount = 0;
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+ControllerModuleInfo::~ControllerModuleInfo()
+{
+	delete [] moduleName;
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+void ControllerModuleInfo::setName(const char* nm, uint8_t len)
+{
+	delete [] moduleName;
+	moduleName = new char[len+1];
+	memcpy(moduleName,nm,len);
+	moduleName[len] = 0;
+}
+//--------------------------------------------------------------------------------------------------------------------------------------
+// SmartController
+//--------------------------------------------------------------------------------------------------------------------------------------
 SmartController::SmartController(uint32_t _id, const char* _name, _Storage& _storage)
 {
 	controllerID = _id;
@@ -128,6 +154,25 @@ void SmartController::updateScan()
 						//тут помещаем модуль в список онлайн модулей
 						ControllerModuleInfo* minf = new ControllerModuleInfo(currentModuleIndex,transports[currentTransportIndex]);
 						modulesList.push_back(minf);
+						
+						// получаем настройки модуля
+						uint8_t nameLen = incoming.get<uint8_t>(0);
+						uint8_t* nm =  incoming.get(1);
+						
+						minf->setName((const char*) nm,nameLen);
+						
+					//	DBG(F("module name: "));
+					//	DBGLN(minf->getName());
+						
+						// теперь получаем кол-во публикуемых и подписываемых слотов
+						minf->setBroadcastSlotsCount(incoming.get<uint8_t>(1+nameLen));
+						minf->setObserveSlotsCount(incoming.get<uint8_t>(2+nameLen));
+						
+					//	DBG(F("broadcast slots: "));
+					//	DBGLN(minf->getBroadcastSlots());
+						
+					//	DBG(F("observe slots: "));
+					//	DBGLN(minf->getObserveSlots());
 					}
 					
 					// переходим на следующий модуль
@@ -161,7 +206,6 @@ void SmartController::updateScan()
 		DBG(F(" modules, found: "));
 		DBG(modulesList.size());
 		DBGLN(F(" online module(s), ask for slots!"));
-		scanning(false); // вызываем событие "сканирование завершено"
 		askSlots();
 	}
 }
@@ -202,6 +246,7 @@ void SmartController::askSlots()
 		// нечего опрашивать!!!
 		DBGLN(F("[C] No online modules, switch to normal work mode!"));
 		machineState = SmartControllerState::Normal;
+		scanning(false); // вызываем событие "сканирование завершено"
 		return;
 	}
 	
@@ -210,6 +255,10 @@ void SmartController::askSlots()
 	machineState = SmartControllerState::AskSlots; // переключаемся на ветку опроса слотов у всех онлайн-модулей
 	
 	//TODO: тут инициализация перед началом сканирования слотов!
+	
+	//TODO: УДАЛИТЬ !!!
+	scanning(false); // вызываем событие "сканирование завершено"
+
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
 void SmartController::updateAskSlots()
