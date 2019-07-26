@@ -566,7 +566,9 @@ class Message
 		static Message Scan(uint32_t controllerID, uint8_t moduleID);
 		static Message ScanResponse(uint32_t controllerID, uint8_t moduleID, const char* moduleName, uint8_t broadcastDataCount,uint8_t observeDataCount);		
 		static Message Pong(uint32_t controllerID, uint8_t moduleID);
+		static Message BroadcastSlotRegister(uint32_t controllerID, uint8_t moduleID, uint8_t slotNumber);
 		static Message BroadcastSlotData(uint32_t controllerID, uint8_t moduleID, AnyData* data);
+		static Message ObserveSlotRegister(uint32_t controllerID, uint8_t moduleID, uint8_t slotNumber);
 		static Message ObserveSlotData(uint32_t controllerID, uint8_t moduleID, uint16_t slotID, uint32_t frequency);
 		static Message AnyDataResponse(uint32_t controllerID, uint8_t moduleID, AnyData* data);
 		static Message EventResponse(uint32_t controllerID, uint8_t moduleID, uint8_t hasEvent, Event* e);

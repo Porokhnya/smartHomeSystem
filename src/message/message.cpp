@@ -223,6 +223,37 @@ Message Message::RegistrationResult(uint32_t controllerID, uint8_t moduleID)
 	return m;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Message Message::BroadcastSlotRegister(uint32_t controllerID, uint8_t moduleID, uint8_t slotNumber)
+{
+	/*
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	сообщение "регистрация исходящего слота" (BroadcastSlotRegister)
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	
+		отсылается контроллером в эфир как запрос на регистрацию исходящего слота модуля в контроллере, структура:
+		
+			ID контроллера
+			ID модуля
+			Тип сообщения - "регистрация исходящего слота" (BroadcastSlotRegister)
+			нагрузка:
+				- номер исходящего слота (1 байт)
+	
+	
+		в ответ на это сообщение модуль отсылает в эфир сообщение "данные исходящего слота" (BroadcastSlotData).	
+	*/
+	
+	Message m(controllerID,moduleID,Messages::BroadcastSlotRegister);
+	
+	m.payloadLength = MESSAGE_HEADER_SIZE + 1;
+	m.payload = new uint8_t[m.payloadLength];
+	
+	uint8_t* writePtr = Message::writeHeader(m.payload, controllerID, moduleID, static_cast<uint16_t>(m.type));
+	
+	*writePtr = slotNumber;
+	
+	return m;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Message Message::BroadcastSlotData(uint32_t controllerID, uint8_t moduleID, AnyData* dt)
 {
 	/*
@@ -270,6 +301,37 @@ Message Message::BroadcastSlotData(uint32_t controllerID, uint8_t moduleID, AnyD
 
 	memcpy(writePtr,dt->getData(),dataLen);
 	
+	
+	return m;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Message Message::ObserveSlotRegister(uint32_t controllerID, uint8_t moduleID, uint8_t slotNumber)
+{
+	/*
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	сообщение "регистрация входящего слота" (ObserveSlotRegister)
+	---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	
+		отсылается контроллером в эфир как запрос на регистрацию входящего слота модуля в контроллере, структура:
+		
+			ID контроллера
+			ID модуля
+			Тип сообщения - "регистрация входящего слота" (ObserveSlotRegister)
+			нагрузка:
+				- номер входящего слота (1 байт)
+	
+	
+		в ответ на это сообщение модуль отсылает в эфир сообщение "данные входящего слота" (ObserveSlotData).
+	*/
+	
+	Message m(controllerID,moduleID,Messages::ObserveSlotRegister);
+	
+	m.payloadLength = MESSAGE_HEADER_SIZE + 1;
+	m.payload = new uint8_t[m.payloadLength];
+	
+	uint8_t* writePtr = Message::writeHeader(m.payload, controllerID, moduleID, static_cast<uint16_t>(m.type));
+	
+	*writePtr = slotNumber;
 	
 	return m;
 }
