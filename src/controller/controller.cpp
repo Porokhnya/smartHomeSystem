@@ -6,9 +6,9 @@
 const char ID_COMMAND[] PROGMEM = "ID"; // получить ID контроллера (GET=ID)
 const char UPTIME_COMMAND[] PROGMEM = "UPTIME"; // получить время работы контроллера, секунд (GET=UPTIME)
 //--------------------------------------------------------------------------------------------------------------------------------------
-// ControllerModuleInfo
+// Module
 //--------------------------------------------------------------------------------------------------------------------------------------
-ControllerModuleInfo::ControllerModuleInfo(uint8_t mid, Transport* t)
+Module::Module(uint8_t mid, Transport* t)
 {
 	moduleID = mid;
 	transport = t;
@@ -17,12 +17,12 @@ ControllerModuleInfo::ControllerModuleInfo(uint8_t mid, Transport* t)
 	broadcastSlotsCount = 0;
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
-ControllerModuleInfo::~ControllerModuleInfo()
+Module::~Module()
 {
 	delete [] moduleName;
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
-void ControllerModuleInfo::setName(const char* nm, uint8_t len)
+void Module::setName(const char* nm, uint8_t len)
 {
 	delete [] moduleName;
 	moduleName = new char[len+1];
@@ -152,7 +152,7 @@ void SmartController::updateScan()
 						DBGLN(currentModuleIndex);
 						
 						//тут помещаем модуль в список онлайн модулей
-						ControllerModuleInfo* minf = new ControllerModuleInfo(currentModuleIndex,transports[currentTransportIndex]);
+						Module* minf = new Module(currentModuleIndex,transports[currentTransportIndex]);
 						modulesList.push_back(minf);
 						
 						// получаем настройки модуля

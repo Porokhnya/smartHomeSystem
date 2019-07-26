@@ -29,11 +29,11 @@ enum class ScanState
 };
 //--------------------------------------------------------------------------------------------------------------------------------------
 // информация о модуле в системе
-class ControllerModuleInfo
+class Module
 {
 	public:
-		ControllerModuleInfo(uint8_t mid, Transport* t);
-		~ControllerModuleInfo();
+		Module(uint8_t mid, Transport* t);
+		~Module();
 		
 		uint8_t getID() { return moduleID; }
 		Transport* getTransport() { return transport; }
@@ -58,11 +58,11 @@ class ControllerModuleInfo
 	
 	private:
 	
-		ControllerModuleInfo(const ControllerModuleInfo& rhs);
-		ControllerModuleInfo& operator=(const ControllerModuleInfo& rhs);
+		Module(const Module& rhs);
+		Module& operator=(const Module& rhs);
 }; 
 //--------------------------------------------------------------------------------------------------------------------------------------
-typedef Vector<ControllerModuleInfo*> SmartModulesList;
+typedef Vector<Module*> SmartModulesList;
 //--------------------------------------------------------------------------------------------------------------------------------------
 class SmartController
 {
@@ -82,7 +82,7 @@ class SmartController
 		const char* getName() { return name; }
 		
 		uint8_t getModulesCount() { return modulesList.size(); }
-		ControllerModuleInfo* getModule(uint8_t idx) { return modulesList[idx]; }
+		Module* getModule(uint8_t idx) { return modulesList[idx]; }
 		
 	private:
 	

@@ -92,7 +92,7 @@ void scanning(bool begin) // событие "сканирование модул
     uint8_t cnt = controller.getModulesCount();
     for(uint8_t i=0;i<cnt;i++)
     {
-      ControllerModuleInfo* module = controller.getModule(i);
+      Module* module = controller.getModule(i);
       DBG(F("Module #"));
       DBG(i);
       DBG(F(": name="));
